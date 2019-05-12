@@ -1,47 +1,62 @@
 ﻿<!DOCTYPE html>
 <html>
-    <head>
-        <meta http-equiv="Cache-control" content="no-cache">
-        <meta charset="utf-8" />
-        <title></title>
-        <!-- 
-            This application will start by reading in key data for rates, portfolio, currency code
-            and country.  The portfolio JSON will be expanded to include base and national amount conversions
-            at the asset level and portfolio level of the portfolio owner.   These adjusts are made to make the application
-            easier to calculate and manipulate - via sorting or other means.
+<head>
+    <meta http-equiv="Cache-control" content="no-cache">
+    <meta charset="utf-8" />
+    <title></title>
+    <!--
+        This application will start by reading in key data for rates, portfolio, currency code
+        and country.  The portfolio JSON will be expanded to include base and national amount conversions
+        at the asset level and portfolio level of the portfolio owner.   These adjusts are made to make the application
+        easier to calculate and manipulate - via sorting or other means.
 
-            We add a UI to display the Portfolio in various forms.
-                - RAW - unfiltered
-                - Sorted by Size of Portfolio - Highest to Lowest
-                - Sorted by Size of Portfolio - Lowest to Highest
+        We add a UI to display the Portfolio in various forms.
+            - RAW - unfiltered
+            - Sorted by Size of Portfolio - Lowest to Highest
 
-            The UI will display a button which will enable the loading of data.
-            The UI will have three additional buttons once the data is loaded to allow for the display
-            of that said data.
+        The UI will display a button which will enable the reloading of data - default data already loaded
+        [this to help in case an error occurs since I wont have time to go through all the try/catch sequences).
 
-        -->
+        The UI will have two additional buttons once the data is loaded to allow for the display
+        of that said data as RAW or Sorted Portfolio in a table.
 
-        <!-- NOTE to PATIENTCO:  
-             Here I'm loading two JSON files that are typically going to be STATIC in nature
+    -->
+    <!-- NOTE:
+         Here I'm loading two JSON files that are typically going to be STATIC in nature
 
-             Reason I'm doing this is to demonstrate the possiblity for pulling in JSON directly
-             to page without having to run an ASYNC call - though it can have a few draw backs
-             if the data doesn't load - so normally I'd pull all data through an AJAX call - and
-             marking each file as errored so that the front end can adjust the display and possibly
-             send the backend error handler some idea of how the front end performed if a timeout or
-             just no data were returned by the call.
+         Reason I'm doing this is to demonstrate the possiblity for pulling in JSON directly
+         to page without having to run an ASYNC call - though it can have a few draw backs
+         if the data doesn't load - so normally I'd pull all data through an AJAX call - and
+         marking each file as errored so that the front end can adjust the display and possibly
+         send the backend error handler some idea of how the front end performed if a timeout or
+         just no data were returned by the call.
+
+        For time purposes those try catches and error call outs to a online or backend logger
+        have not been implemented.
 
 
-            SOME PROBLEMS WITH CODE IF IMPLEMENTED AS DEPICTED:
-            1.  THIS CODE IMPLEMENTATION ASSUMES ES6 COMPATIBILITY 
+        SOME PROBLEMS WITH CODE IF IMPLEMENTED AS DEPICTED:
+        1.  THIS CODE IMPLEMENTATION ASSUMES ES6 COMPATIBILITY
 
-            2.  THIS CODE AS IMPLEMENTED ALSO WOULD CACHE the Country and CurrencyCode
-             - which is why pulling  in via AJAX call would improve the stability of the code.
-        -->
+        2.  THIS CODE AS IMPLEMENTED ALSO WOULD CACHE the Country and CurrencyCode
+         - which is why pulling  in via AJAX call would improve the stability of the code.
 
-        <script type="text/javascript" src="Country.js"></script>
-        <script type="text/javascript" src="CurrencyCode.js"></script>
-    </head>
+        Additionally in a normal implementation I would be pulling my functions out into
+        classes or at very least into libraries rather than inline to the main index.html page.
+    -->
+
+    <script type="text/javascript" src="Country.js"></script>
+    <script type="text/javascript" src="CurrencyCode.js"></script>
+
+    <!-- Next Four Commands added to provide basic bootstrap support for the UI 
+          -  I have not added any major bootstrap templates only the basic bootstrap functionality
+    -->
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.0/css/bootstrap.min.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.0/jquery.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.0/js/bootstrap.min.js"></script>
+
+</head>
     <script type="text/javascript">
 
         //-------------------------------
@@ -115,7 +130,7 @@
                 //Define an object to hold error states
                 let dataObjects={};
 
-                //Define error types with a simple failure count
+                //Define error types with a simple failure count  [Not implemented in this example]
                 //  -1 = Never Initiated
                 //   0 = Success
                 //   first 1-9999 digits : Define occurrences of failure
@@ -231,75 +246,85 @@
             //    4.  Providing Asset Values in USD Base Currency
             function processPortfolio(){
 
-                pFolios=clientPortfolio.portfolios;
-                // using For Loop rather than For Each for clarity and speed
-                for(let i = 0; i < pFolios.length; i++){
 
-                    // Get portfolio
-                   let portfolioArray = pFolios[i];
+                try{
+                    pFolios=clientPortfolio.portfolios;
+                    // using For Loop rather than For Each for clarity and speed
+                    for(let i = 0; i < pFolios.length; i++){
 
+                        // Get portfolio
+                       let portfolioArray = pFolios[i];
 
-                        //set new entries into Array to base values
-                            // -1000000 just because we want to track a value that is not normal for a Account Value
-                        portfolioArray["fxAssetTotalBaseCurrency"]=-10000000;
-                        portfolioArray["currencyCodeRateMultiplier"]=0;
-                        portfolioArray["fxAssetTotalNationalCurrency"]=-10000000;
+                            if (i==14){
+                                var newerrordebug=1
+                            }
 
-                            // NA since if this is still set to NA after completion there is a problem
-                        portfolioArray["countryOfOriginName"]="N/A";
+                            //set new entries into Array to base values
+                                // -1000000 just because we want to track a value that is not normal for a Account Value
+                            portfolioArray["fxAssetTotalBaseCurrency"]=-10000000;
+                            portfolioArray["currencyCodeRateMultiplier"]=0;
+                            portfolioArray["fxAssetTotalNationalCurrency"]=-10000000;
 
-                        //Find the Country Code
-                        var portfolioCountry = countryCodes.find(item => {
-                            return item.code == portfolioArray["countryCode"]});
+                                // NA since if this is still set to NA after completion there is a problem
+                            portfolioArray["countryOfOriginName"]="N/A";
 
-                        //Find the ISO Code
-                        var portfolioCurrencyCode = currencyCodes.find(item => {
-                            return item.isoCode == portfolioCountry["currencyCode"]});
+                            //Find the Country Code
+                            var portfolioCountry = countryCodes.find(item => {
+                                return item.code == portfolioArray["countryCode"]});
 
-                        // Set Currency Code of the Portfolio
-                        portfolioArray["isoCurrencyCode"]=portfolioCurrencyCode.isoCode;
+                            //Find the ISO Code
+                            var portfolioCurrencyCode = currencyCodes.find(item => {
+                                return item.isoCode == portfolioCountry["currencyCode"]});
 
-                        // Set Rate for Country Code Multiplier
-                        portfolioArray["currencyCodeRateMultiplier"]=dataRates.rates[portfolioCurrencyCode.isoCode];
+                            // Set Currency Code of the Portfolio
+                            portfolioArray["isoCurrencyCode"]=portfolioCurrencyCode.isoCode;
 
-                        // Set Country of Origin
-                        portfolioArray["countryOfOriginName"]=portfolioCountry.name;
+                            // Set Rate for Country Code Multiplier
+                            portfolioArray["currencyCodeRateMultiplier"]=dataRates.rates[portfolioCurrencyCode.isoCode];
 
-
-
-                        //process fix assets of potfolio based on currency code
-                        var tempTotalAccountAssetAmountInBase=0.0;
-                        var tempTotalAccountAssetAmountinNationalCurrency=0.0;
-                        for(let j = 0; j < portfolioArray["fxAssets"].length; j++){
-
-                            //Collect the asset data points for processing National and Base Amounts
-                            let fixedAsset = portfolioArray["fxAssets"][j];
-                            assetCurrencyCode=fixedAsset["currencyCode"];
-                            assetAmount=fixedAsset["amount"];
-                            assetRate=dataRates.rates[assetCurrencyCode];
-                            nationalRate=dataRates.rates[portfolioCurrencyCode.isoCode];
-
-                            //Determine amounts for base and national off of rates for both
-                            baseAmount=assetAmount/assetRate;
-                            nationalAmount=baseAmount*nationalRate;
-
-                            //Set and Add national and base amount in JSON
-                            fixedAsset["nationalAmt"]=nationalAmount;
-                            fixedAsset["baseAmt"]=baseAmount;
-
-                            //Increment the Assets Amount
-                            tempTotalAccountAssetAmountInBase+=baseAmount;
-                            tempTotalAccountAssetAmountinNationalCurrency+=nationalAmount
-                        }
-
-                        portfolioArray["fxAssetTotalBaseCurrency"]=tempTotalAccountAssetAmountInBase;
-
-                        portfolioArray["fxAssetTotalNationalCurrency"]=tempTotalAccountAssetAmountInBase * portfolioArray["currencyCodeRateMultiplier"];
+                            // Set Country of Origin
+                            portfolioArray["countryOfOriginName"]=portfolioCountry.name;
 
 
+
+                            //process fix assets of potfolio based on currency code
+                            var tempTotalAccountAssetAmountInBase=0.0;
+                            var tempTotalAccountAssetAmountinNationalCurrency=0.0;
+                            for(let j = 0; j < portfolioArray["fxAssets"].length; j++){
+
+                                //Collect the asset data points for processing National and Base Amounts
+                                let fixedAsset = portfolioArray["fxAssets"][j];
+                                assetCurrencyCode=fixedAsset["currencyCode"];
+                                assetAmount=fixedAsset["amount"];
+                                assetRate=dataRates.rates[assetCurrencyCode];
+                                nationalRate=dataRates.rates[portfolioCurrencyCode.isoCode];
+
+                                //Determine amounts for base and national off of rates for both
+                                baseAmount=assetAmount/assetRate;
+                                nationalAmount=baseAmount*nationalRate;
+
+                                //Set and Add national and base amount in JSON
+                                fixedAsset["nationalAmt"]=nationalAmount;
+                                fixedAsset["baseAmt"]=baseAmount;
+
+                                //Increment the Assets Amount
+                                tempTotalAccountAssetAmountInBase+=baseAmount;
+                                tempTotalAccountAssetAmountinNationalCurrency+=nationalAmount
+                            }
+
+                            portfolioArray["fxAssetTotalBaseCurrency"]=tempTotalAccountAssetAmountInBase;
+
+                            portfolioArray["fxAssetTotalNationalCurrency"]=tempTotalAccountAssetAmountInBase * portfolioArray["currencyCodeRateMultiplier"];
+
+
+
+
+                    }
+                }catch(error){
+                        //Typically one might use try catches throughout the code to log and send errors back to
+                        //an online or internal logging system to allow for tracking of front issues - crashalytics - being an example of one system someone might use
+                        console.error(error);
                 }
-
-
             }
 
             //-----------------------------------------
@@ -313,7 +338,7 @@
                 requestExchangeRates();
                 requestClientPortfolios();
                 // TODO:  Following two functions were temporarily replaced by imports of the JS files
-                // Using functions to pull back JSON provides a greater level of control then a pure static invocation
+                // Using functions to pull back JSON provides a greater level of control than a pure static invocation
                 //requestCurrencyCodes();
                 //requestCountryCodes();
 
@@ -339,7 +364,11 @@
 
                         //return a.fxAssetTotalBaseCurrency.toString().localeCompare(b.fxAssetTotalBaseCurrency.toString());
                     });
-                    document.write('<pre>' + JSON.stringify(data, 0, 4) + '</pre>');
+
+
+                    var element=document.getElementById("PortfolioView");
+                    element.innerHTML='<pre>' + JSON.stringify(data, 0, 4) + '</pre>';
+
 
                 }
             }
@@ -359,58 +388,145 @@
 
                     var pFolios = clientPortfolio.portfolios;
 
+                    // SORT the portfolio by Asset Value of Portfolio
                     pFolios.sort(function (a, b) {
                         return a.fxAssetTotalBaseCurrency-b.fxAssetTotalBaseCurrency;
                     });
 
-                    document.Write("<table>");
+                    //--------------------------------------------------
+                    //  Build the HTML for the Table of portfolio items
+                    //--------------------------------------------------
+                    //  We could use something like a document.Write or document.Append
+                    //  or the creation of elements in javascript...but in this example
+                    //   the html is created  - without use of CSS for styles.
+                    //  The html will be inserted/replaced into a div using innerHtml.
+
+                    var html;
+                    html= "<table cellpadding=1 cellspacing=1 border=1 >";
+                    //Write a Header Row
+                    html+="<tr>";
+                    html+="<td>Name</td><td>Country</td><td>USD Amt</td><td>National Amt</td>";
+                    html+="</tr>";
 
                     // using For Loop rather than For Each for clarity and speed
                     for(let i = 0; i < pFolios.length; i++){
 
                             //Write a New Row
-                            document.Write("<tr>");
+                            html+="<tr>";
 
                             // Get portfolio
                            let portfolioArray = pFolios[i];
 
-                            document.Write("<td>");
-                            document.Write("Name: "+portfolioArray.name )
-                            document.Write("</td>");
+                            html+="<td>";
+                            html+=" "+portfolioArray.name
+                            html+="</td>";
 
-                            document.Write("<td>");
-                            document.Write("Country: "+portfolioArray.countryOfOriginName )
-                            document.Write("</td>");
+                            html+="<td>";
+                            html+=" "+portfolioArray.countryOfOriginName
+                            html+="</td>";
 
 
-                             document.Write("<td>");
-                            document.Write("Portfolio Amt in USD: "+portfolioArray.fxAssetTotalBaseCurrency )
-                            document.Write("</td>");
+                            html+="<td>";
+                            html+=" "+portfolioArray.fxAssetTotalBaseCurrency.toFixed(2)
+                            html+="</td>";
 
-                            document.Write("<td>");
-                            document.Write("Portfolio Amt in National Currency: "+portfolioArray.fxAssetTotalNationalCurrency )
-                            document.Write("</td>");
+                            html+="<td>";
+                            html+=" "+portfolioArray.fxAssetTotalNationalCurrency.toFixed(2)
+                            html+="</td>";
 
-                            document.write('</tr>');
+                            html+="</tr>";
                     }
 
 
-                    document.write('</table>');
+                    html+="</table>";
+                    var element=document.getElementById("PortfolioView");
+                    element.innerHTML=html;
+                }
+            }
 
+
+            //----------------------------------------------
+            // BEGIN : Function displayDataAsSortedTableWithBootStrap()
+            //----------------------------------------------
+            //
+            //      This function will simply display the raw JSON of
+            //      the GLOBAL variable clientPortofilio to an HTML PRE
+            //      using document.write
+            //
+            function displayDataAsSortedTableWithBootStrap(){
+
+                //Check if the data has posted correctly to the global variables before diaplaying
+                if (dataRates!=null && clientPortfolio!=null){
+
+                    var pFolios = clientPortfolio.portfolios;
+
+                    // SORT the portfolio by Asset Value of Portfolio
+                    pFolios.sort(function (a, b) {
+                        return a.fxAssetTotalBaseCurrency-b.fxAssetTotalBaseCurrency;
+                    });
+
+                    //--------------------------------------------------
+                    //  Build the HTML for the Table of portfolio items
+                    //--------------------------------------------------
+                    //  We could use something like a document.Write or document.Append
+                    //  or the creation of elements in javascript...but in this example
+                    //   the html is created  - without use of CSS for styles.
+                    //  The html will be inserted/replaced into a div using innerHtml.
+
+                    var html;
+                    html= "<div class='container' >";
+                    //Write a Header Row
+                    html+="<div class='row'>";
+                    html+="<div class='col-sm-4'>Name</div><div class='col-sm-4'>Country</div><div class='col-sm-2'>USD Amt</div><div class='col-sm-2'>National Amt</div>";
+                    html+="</div>";
+
+                    // using For Loop rather than For Each for clarity and speed
+                    for(let i = 0; i < pFolios.length; i++){
+
+                            //Write a New Row
+                            html+="<div class='row'>";
+
+                            // Get portfolio
+                           let portfolioArray = pFolios[i];
+
+                            html+="<div class='col-sm-4'>";
+                            html+=" "+portfolioArray.name
+                            html+="</div>";
+
+                            html+="<div class='col-sm-4'>";
+                            html+=" "+portfolioArray.countryOfOriginName
+                            html+="</div>";
+
+
+                            html+="<div class='col-sm-2'>";
+                            html+=" "+portfolioArray.fxAssetTotalBaseCurrency.toFixed(2)
+                            html+="</div>";
+
+                            html+="<div class='col-sm-2'>";
+                            html+=" "+portfolioArray.fxAssetTotalNationalCurrency.toFixed(2)
+                            html+="</div>";
+
+                            html+="</div>";
+                    }
+
+
+                    html+="</div>";
+                    var element=document.getElementById("PortfolioView");
+                    element.innerHTML=html;
                 }
             }
 
 
     </script>
-    <body onshow="">
+    <body onload="requestData()">
 
 
-        <button onclick="requestData()">Load All JSON Data</button><div id="input"></div><br />
+        <button onclick="requestData()">Load Rates and Portfolio Data Again</button><div id="input"></div><br />
         <button onclick="displayData()">Display the PORTFOLIO Sorted By Name [RAW JSON] </button><br />
         <button onclick="displayDataAsSortedTable()">Display the PORTFOLIO Sorted By Portfolio Value</button>
+        <button onclick="displayDataAsSortedTableWithBootStrap()">Display the PORTFOLIO Sorted By Portfolio Value with BootStrap DIVs</button>
 
         <div id="PortfolioView">
-            <script></script>
 
         </div>
 
