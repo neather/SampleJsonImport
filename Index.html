@@ -368,62 +368,34 @@
                     // using For Loop rather than For Each for clarity and speed
                     for(let i = 0; i < pFolios.length; i++){
 
+                            //Write a New Row
                             document.Write("<tr>");
+
                             // Get portfolio
                            let portfolioArray = pFolios[i];
 
+                            document.Write("<td>");
+                            document.Write("Name: "+portfolioArray.name )
+                            document.Write("</td>");
+
+                            document.Write("<td>");
+                            document.Write("Country: "+portfolioArray.countryOfOriginName )
+                            document.Write("</td>");
 
 
-                            totalBaseCurrency=portfolioArray.fxAssetTotalBaseCurrency;
-                            curCodeRateMultiplier=portfolioArray.currencyCodeRateMultiplier;
-                            totalNationalCurrency=portfolioArray.fxAssetTotalNationalCurrency;
-                            country=portfolioArray.countryOfOriginName
+                             document.Write("<td>");
+                            document.Write("Portfolio Amt in USD: "+portfolioArray.fxAssetTotalBaseCurrency )
+                            document.Write("</td>");
 
+                            document.Write("<td>");
+                            document.Write("Portfolio Amt in National Currency: "+portfolioArray.fxAssetTotalNationalCurrency )
+                            document.Write("</td>");
 
-     
-
-                            // Set Rate for Country Code Multiplier
-                            portfolioArray["currencyCodeRateMultiplier"]=dataRates.rates[portfolioCurrencyCode.isoCode];
-
-                            // Set Country of Origin
-                            portfolioArray["countryOfOriginName"]=portfolioCountry.name;
-
-
-
-                            //process fix assets of potfolio based on currency code
-                            var tempTotalAccountAssetAmountInBase=0.0;
-                            var tempTotalAccountAssetAmountinNationalCurrency=0.0;
-                            for(let j = 0; j < portfolioArray["fxAssets"].length; j++){
-
-                                //Collect the asset data points for processing National and Base Amounts
-                                let fixedAsset = portfolioArray["fxAssets"][j];
-                                assetCurrencyCode=fixedAsset["currencyCode"];
-                                assetAmount=fixedAsset["amount"];
-                                assetRate=dataRates.rates[assetCurrencyCode];
-                                nationalRate=dataRates.rates[portfolioCurrencyCode.isoCode];
-
-                                //Determine amounts for base and national off of rates for both
-                                baseAmount=assetAmount/assetRate;
-                                nationalAmount=baseAmount*nationalRate;
-
-                                //Set and Add national and base amount in JSON
-                                fixedAsset["nationalAmt"]=nationalAmount;
-                                fixedAsset["baseAmt"]=baseAmount;
-
-                                //Increment the Assets Amount
-                                tempTotalAccountAssetAmountInBase+=baseAmount;
-                                tempTotalAccountAssetAmountinNationalCurrency+=nationalAmount
-                            }
-
-                            portfolioArray["fxAssetTotalBaseCurrency"]=tempTotalAccountAssetAmountInBase;
-
-                            portfolioArray["fxAssetTotalNationalCurrency"]=tempTotalAccountAssetAmountInBase * portfolioArray["currencyCodeRateMultiplier"];
-
-
+                            document.write('</tr>');
                     }
 
 
-                    document.write('<pre>' + JSON.stringify(data, 0, 4) + '</pre>');
+                    document.write('</table>');
 
                 }
             }
@@ -431,15 +403,16 @@
 
     </script>
     <body onshow="">
-        Test Kramer 2 <button onclick="requestData()" value="Load Portfolio Data" /><div id="input"></div>
 
-            <button onclick="displayData()" value="Load Portfolio Data" title="Show Data"/>
-            <div id="PortfolioView">
-                <script>
 
-                </script>
+        <button onclick="requestData()">Load All JSON Data</button><div id="input"></div><br />
+        <button onclick="displayData()">Display the PORTFOLIO Sorted By Name [RAW JSON] </button><br />
+        <button onclick="displayDataAsSortedTable()">Display the PORTFOLIO Sorted By Portfolio Value</button>
 
-            </div>
+        <div id="PortfolioView">
+            <script></script>
+
+        </div>
 
     </body>
 </html>
