@@ -1,0 +1,313 @@
+﻿<!DOCTYPE html>
+<html>
+    <head>
+        <meta http-equiv="Cache-control" content="no-cache">
+        <meta charset="utf-8" />
+        <title></title>
+        <!-- 
+            This application will start by reading in key data for rates, portfolio, currency code
+            and country.  The portfolio JSON will be expanded to include base and national amount conversions
+            at the asset level and portfolio level of the portfolio owner.   These adjusts are made to make the application
+            easier to calculate and manipulate - via sorting or other means.
+
+            We add a UI to display the Portfolio in various forms.
+                - RAW - unfiltered
+                - Sorted by Size of Portfolio - Highest to Lowest
+                - Sorted by Size of Portfolio - Lowest to Highest
+
+            The UI will display a button which will enable the loading of data.
+            The UI will have three additional buttons once the data is loaded to allow for the display
+            of that said data.
+
+        -->
+
+        <!-- NOTE to PATIENTCO:  
+             Here I'm loading two JSON files that are typically going to be STATIC in nature
+
+             Reason I'm doing this is to demonstrate the possiblity for pulling in JSON directly
+             to page without having to run an ASYNC call - though it can have a few draw backs
+             if the data doesn't load - so normally I'd pull all data through an AJAX call - and
+             marking each file as errored so that the front end can adjust the display and possibly
+             send the backend error handler some idea of how the front end performed if a timeout or
+             just no data were returned by the call.
+
+
+            SOME PROBLEMS WITH CODE IF IMPLEMENTED AS DEPICTED:
+            1.  THIS CODE IMPLEMENTATION ASSUMES ES6 COMPATIBILITY 
+
+            2.  THIS CODE AS IMPLEMENTED ALSO WOULD CACHE the Country and CurrencyCode
+             - which is why pulling  in via AJAX call would improve the stability of the code.
+        -->
+
+        <script type="text/javascript" src="Country.js"></script>
+        <script type="text/javascript" src="CurrencyCode.js"></script>
+        <script type="text/javascript" src="CommonLibrary.js"></script>
+    </head>
+    <script type="text/javascript">
+
+
+    </script>
+    <script type="text/javascript">
+
+            //------------------------------------
+            //BEGIN : Global Variables
+            //------------------------------------
+
+                // Set the variables to be used during operation of functions
+                var dataRates=null;
+                var dataRates2=null;
+                //var countryCodes=null;   Could be defined here - but in this example decided to pull them  in via imports
+                //var currencyCodes=null;  Could be defined here - but in this example decided to pull them in via imports
+                var clientPortfolio=null;
+
+                var dataRateURL="http://openexchangerates.org/api/latest.json?app_id=925b5c034e404a678862b0ea49a2fab6";
+                var dataPortfolioURL="portfolio.json";
+
+
+                //Define an object to hold error states
+                let dataObjects={};
+
+                //Define error types with a simple failure count
+                //  -1 = Never Initiated
+                //   0 = Success
+                //   first 1-9999 digits : Define occurrences of failure
+                //   10000 + digits : Define occurrences of timeout failure
+                dataObjects.ExchangeRateCallFailures=-1;
+                dataObjects.CurrencyCodesCallFailures=-1;
+                dataObjects.ClientPortfolioCallFailures=-1;
+                dataObjects.CountryCodesCallFailures=-1;
+
+            //------------------------------------
+            //END : Global Variables
+            //------------------------------------
+
+
+
+
+            //-----------------------------------------
+            //BEGIN : Function requestClientPortfolios
+            //-----------------------------------------
+            //          Returns data in global variables
+            //              dataObjects - for Call Failures
+            //              clientPortfolios - for Client and Portfolio Info
+            //----------------------------------------
+            function requestClientPortfolios(){
+
+
+
+                // get ClientPortfolios
+                $ajax.send(dataPortfolioURL, {
+                    onSuccess: function(portfolioPassed){
+                        console.log("success",portfolioPassed);
+
+                        //Set Global Variable
+                        clientPortfolio=portfolioPassed;
+                        processPortfolio();
+                        dataObjects.ClientPortfolioCallFailures=0;
+                    },
+                    onError: function(){
+                        console.log("Error");
+                        dataObjects.ClientPortfolioCallFailures+=1;
+                    },
+                    onTimeout: function(){
+                        console.log("Timeout");
+                        //Add 10000 instead of 1 to denote a failure due to timeout
+                        dataObjects.ClientPortfolioCallFailures+=10000;
+                    },
+                    timeout: 10000
+                });
+
+
+
+
+            }
+
+            //-----------------------------------------
+            //BEGIN : Function requestExchangeRates
+            //-----------------------------------------
+            //          Returns data in global variables
+            //              dataObjects - for Call Failures
+            //              dataRates - for exchange rate details from 3rd Party Provider URL
+            //
+            //----------------------------------------
+
+            function requestExchangeRates(){
+
+                // Set an Alert simply to alert while debugging
+                // TODO - REMOVE After Testing
+                alert("Test - Alert me so I can see the execution of this function - requestDATA");
+
+
+
+
+                // get DataRates
+                $ajax.send(dataRateURL, {
+                    onSuccess: function(dataRatesPassed){
+                        console.log("success",dataRatesPassed);
+
+                        //Set Data Rates
+                        dataRates=dataRatesPassed
+
+                        for (var key in dataRates) {
+                            if (dataRates.hasOwnProperty(key)) {
+                                console.log(key + " -> " + dataRates[key]);
+                            }
+                        }
+                        var currencylookupcode="USD";
+                        var rate=dataRates.rates[currencylookupcode];
+                        console.log("Found It"+rate);
+                        dataObjects.ExchangeRatesCallFailures=0;
+
+                    },
+                    onError: function(){
+                        console.log("Error");
+                        dataObjects.ExchangeRatesCallFailures+=1;
+                    },
+                    onTimeout: function(){
+                        console.log("Timeout");
+                        dataObjects.ExchangeRatesCallFailures+=10000;
+                    },
+                    timeout: 10000
+                });
+            }
+
+
+            //-----------------------------------------
+            //BEGIN : processPortfolio
+            //-----------------------------------------
+            //    Behavior of this function is to process each portfolio in the array and normalize the JSON
+            //    so we have more sortable criteria that we can use with a standard sorting algorithm.
+            //    1.  Adding Fields that do not exist already - for speed of future processing
+            //    2.  Summing up the Assets of each asset class into Base and National Currency of the Owners banking country and [USD - BASE]
+            //    3.  Providing Asset Values in Origination Currency in National Currency - the Currency of Portfolios Owners banking country
+            //    4.  Providing Asset Values in USD Base Currency
+            function processPortfolio(){
+
+                pFolios=clientPortfolio.portfolios;
+                // using For Loop rather than For Each for clarity and speed
+                for(let i = 0; i < pFolios.length; i++){
+
+                    // Get portfolio
+                   let portfolioArray = pFolios[i];
+
+
+                        //set new entries into Array to base values
+                            // -1000000 just because we want to track a value that is not normal for a Account Value
+                        portfolioArray["fxAssetTotalBaseCurrency"]=-10000000;
+                        portfolioArray["currencyCodeRateMultiplier"]=0;
+                        portfolioArray["fxAssetTotalNationalCurrency"]=-10000000;
+
+                            // NA since if this is still set to NA after completion there is a problem
+                        portfolioArray["countryOfOriginName"]="N/A";
+
+                        //Find the Country Code
+                        var portfolioCountry = countryCodes.find(item => {
+                            return item.code == portfolioArray["countryCode"]});
+
+                        //Find the ISO Code
+                        var portfolioCurrencyCode = currencyCodes.find(item => {
+                            return item.isoCode == portfolioCountry["currencyCode"]});
+
+                        // Set Currency Code of the Portfolio
+                        portfolioArray["isoCurrencyCode"]=portfolioCurrencyCode.isoCode;
+
+                        // Set Rate for Country Code Multiplier
+                        portfolioArray["currencyCodeRateMultiplier"]=dataRates.rates[portfolioCurrencyCode.isoCode];
+
+                        // Set Country of Origin
+                        portfolioArray["countryOfOriginName"]=portfolioCountry.name;
+
+
+
+                        //process fix assets of potfolio based on currency code
+                        var tempTotalAccountAssetAmountInBase=0.0;
+                        var tempTotalAccountAssetAmountinNationalCurrency=0.0;
+                        for(let j = 0; j < portfolioArray["fxAssets"].length; j++){
+
+                            //Collect the asset data points for processing National and Base Amounts
+                            let fixedAsset = portfolioArray["fxAssets"][j];
+                            assetCurrencyCode=fixedAsset["currencyCode"];
+                            assetAmount=fixedAsset["amount"];
+                            assetRate=dataRates.rates[assetCurrencyCode];
+                            nationalRate=dataRates.rates[portfolioCurrencyCode.isoCode];
+
+                            //Determine amounts for base and national off of rates for both
+                            baseAmount=assetAmount/assetRate;
+                            nationalAmount=baseAmount*nationalRate;
+
+                            //Set and Add national and base amount in JSON
+                            fixedAsset["nationalAmt"]=nationalAmount;
+                            fixedAsset["baseAmt"]=baseAmount;
+
+                            //Increment the Assets Amount
+                            tempTotalAccountAssetAmountInBase+=baseAmount;
+                            tempTotalAccountAssetAmountinNationalCurrency+=nationalAmount
+                        }
+
+                        portfolioArray["fxAssetTotalBaseCurrency"]=tempTotalAccountAssetAmountInBase;
+
+                        portfolioArray["fxAssetTotalNationalCurrency"]=tempTotalAccountAssetAmountInBase * portfolioArray["currencyCodeRateMultiplier"];
+
+
+                }
+
+
+            }
+
+            //-----------------------------------------
+            //BEGIN :  Function requestData
+            //-----------------------------------------
+            //        This function accepts no data
+            //        but is initiated upon button
+            //----------------------------------------
+            function requestData(){
+
+                requestExchangeRates();
+                requestClientPortfolios();
+                // TODO:  Following two functions were temporarily replaced by imports of the JS files
+                // Using functions to pull back JSON provides a greater level of control then a pure static invocation
+                //requestCurrencyCodes();
+                //requestCountryCodes();
+
+            }
+
+            //----------------------------------------
+            // BEGIN : Function displayData()
+            //----------------------------------------
+            //
+            //      This function will simply display the raw JSON of
+            //      the GLOBAL variable clientPortofilio to an HTML PRE
+            //      using document.write
+            //
+            function displayData(){
+
+                //Check if the data has posted correctly to the global variables before diaplaying
+                if (dataRates!=null && clientPortfolio!=null){
+
+                    var data = clientPortfolio.portfolios;
+
+                    data.sort(function (a, b) {
+                        return a.fxAssetTotalBaseCurrency-b.fxAssetTotalBaseCurrency;
+
+                        //return a.fxAssetTotalBaseCurrency.toString().localeCompare(b.fxAssetTotalBaseCurrency.toString());
+                    });
+                    document.write('<pre>' + JSON.stringify(data, 0, 4) + '</pre>');
+
+                }
+            }
+
+
+    </script>
+    <body onshow="">
+        Test Kramer <button onclick="requestData()" value="Load Portfolio Data"/><div id="input"></div>
+
+            <button onclick="displayData()" value="Load Portfolio Data" title="Show Data"/>
+            <div id="PortfolioView">
+                <script>
+
+                </script>
+
+            </div>
+
+    </body>
+</html>
