@@ -360,9 +360,7 @@
                     var data = clientPortfolio.portfolios;
 
                     data.sort(function (a, b) {
-                        return a.fxAssetTotalBaseCurrency-b.fxAssetTotalBaseCurrency;
-
-                        //return a.fxAssetTotalBaseCurrency.toString().localeCompare(b.fxAssetTotalBaseCurrency.toString());
+                        return a.name.localeCompare(b.name);
                     });
 
 
